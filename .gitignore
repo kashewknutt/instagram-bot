@@ -6,6 +6,7 @@ __pycache__/
 dist/
 build/
 data/chrome-profile/
+data/browser-profile/
 data/usage_log.json
 data/raw/*.json
 data/filtered/*.json

@@ -7,9 +7,25 @@ Hybrid local agent for software agency social media trend analysis. Uses **brows
 - Python 3.11+
 - Google Chrome installed
 - Kimi API key from [platform.kimi.ai](https://platform.kimi.ai)
-- Logged-in Instagram session (browser profile persists login)
+- Logged-in Instagram session (saved under `data/browser-profile`)
 
 ## Setup
+
+### Windows (PowerShell)
+
+```powershell
+cd instagram-bot
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -e .
+playwright install chromium
+
+copy .env.example .env
+# Edit .env and set MOONSHOT_API_KEY
+# CHROME_PATH defaults to C:\Program Files\Google\Chrome\Application\chrome.exe
+```
+
+### macOS / Linux
 
 ```bash
 cd instagram-bot
@@ -22,11 +38,15 @@ cp .env.example .env
 # Edit .env and set MOONSHOT_API_KEY
 ```
 
-## Commands
+## Instagram login
 
-```bash
-# Verify Kimi API works (requires MOONSHOT_API_KEY in .env)
-python main.py smoke-test
+Ingest uses bundled Chromium with a persistent profile at `data/browser-profile`.
+
+```powershell
+python main.py ingest
+```
+
+On first run, log into Instagram in the opened browser window (including 2FA). Close nothing until the agent finishes or you are logged in — the session is saved and reused on later runs.
 
 # Test full pipeline offline (no API key needed)
 python main.py --offline run-once --sample
@@ -58,6 +78,7 @@ Key env vars in `.env`:
 | Variable | Default | Purpose |
 |---|---|---|
 | `MOONSHOT_API_KEY` | — | Kimi API key |
+| `BROWSER_USER_DATA_DIR` | `./data/browser-profile` | Persistent Instagram login profile |
 | `KIMI_FILTER_MODEL` | `kimi-k2.6` | Relevance filtering |
 | `KIMI_SYNTH_MODEL` | `kimi-k3` | Daily dashboard synthesis |
 | `ENABLE_MULTIMODAL` | `false` | Video/image analysis (costs more) |

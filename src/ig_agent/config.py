@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -17,6 +18,16 @@ FILTERED_DIR = DATA_DIR / "filtered"
 MEDIA_DIR = DATA_DIR / "media"
 REPORTS_DIR = PROJECT_ROOT / "reports"
 AGENCY_CONTEXT_PATH = PROJECT_ROOT / "agency_context.json"
+
+_DEFAULT_CHROME_PATHS = {
+    "win32": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "darwin": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "linux": "/usr/bin/google-chrome",
+}
+
+
+def _default_chrome_path() -> str:
+    return _DEFAULT_CHROME_PATHS.get(sys.platform, _DEFAULT_CHROME_PATHS["linux"])
 
 
 def _expand_path(value: str) -> Path:
@@ -39,14 +50,13 @@ class Settings:
         default_factory=lambda: os.getenv("KIMI_BROWSER_MODEL", "kimi-k2.6")
     )
     chrome_path: str = field(
-        default_factory=lambda: os.getenv(
-            "CHROME_PATH",
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-        )
+        default_factory=lambda: os.getenv("CHROME_PATH", _default_chrome_path())
     )
     browser_user_data_dir: Path = field(
         default_factory=lambda: _expand_path(
-            os.getenv("BROWSER_USER_DATA_DIR", "./data/chrome-profile")
+            # Avoid "chrome" in the path — browser-use treats those as system
+            # Chrome profiles and copies them to a disposable temp directory.
+            os.getenv("BROWSER_USER_DATA_DIR", "./data/browser-profile")
         )
     )
     max_posts_per_session: int = field(

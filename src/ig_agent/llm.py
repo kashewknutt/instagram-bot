@@ -75,7 +75,10 @@ class KimiClient:
 
 
 def get_browser_llm(settings: Settings | None = None):
-    """Return a browser-use compatible ChatOpenAI instance for Moonshot."""
+    """Return a browser-use compatible ChatOpenAI instance for Moonshot.
+
+    Kimi k2.6/k3 fix temperature=1 and frequency_penalty=0; other values 400.
+    """
     from browser_use import ChatOpenAI
 
     cfg = settings or get_settings()
@@ -86,7 +89,10 @@ def get_browser_llm(settings: Settings | None = None):
         model=cfg.kimi_browser_model,
         base_url=cfg.kimi_base_url,
         api_key=cfg.moonshot_api_key,
+        temperature=1.0,
+        frequency_penalty=0.0,
         add_schema_to_system_prompt=True,
         remove_min_items_from_schema=True,
         remove_defaults_from_schema=True,
+        dont_force_structured_output=True,
     )

@@ -69,8 +69,10 @@ async def capture_trends(
         )
 
     llm = get_browser_llm(cfg)
+    # Do not pass system Chrome executable_path: browser-use copies Chrome
+    # profiles to a temp dir and login cookies are lost between runs.
+    # Bundled Chromium + a stable user_data_dir keeps the Instagram session.
     browser = BrowserSession(
-        executable_path=cfg.chrome_path,
         headless=False,
         user_data_dir=str(cfg.browser_user_data_dir),
     )
