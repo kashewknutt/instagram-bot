@@ -1,49 +1,32 @@
 # agent-sdk
 
-Shared runtime and HTTP control contract for plug-and-play social observation bots.
+Shared runtime and HTTP control contract for social observation bots.
 
-## Install
+## Clone & setup
 
-```bash
-pip install -e ../agent-sdk
-# or from a sibling clone:
-pip install -e ./agent-sdk
+Usually installed automatically when you run the platform `setup.ps1` / `setup.py`.
+
+```powershell
+git clone https://github.com/kashewknutt/instagram-bot.git
+cd instagram-bot
+.\setup.ps1 -Profile fleet
 ```
 
-## Bot contract
+**Open:** the platform repo root in Cursor (not this folder alone), unless you are editing the SDK.
 
-Every bot exposes the same FastAPI control surface via `create_control_app(controller)`:
+Standalone:
+
+```powershell
+cd D:\GitHub\agent-sdk
+python bootstrap.py
+```
+
+## Control API (every bot)
 
 | Method | Path | Purpose |
 |--------|------|---------|
 | GET | `/health` | Liveness |
 | GET | `/status` | Lifecycle, step, usage, artifacts |
 | POST | `/run` | `{ "mode": "once" \| "daemon" }` |
-| POST | `/pause` | Pause a running job |
-| POST | `/resume` | Resume from pause |
-| POST | `/stop` | Cooperative stop |
-| GET | `/logs?tail=200` | Recent log / event lines |
-| GET | `/direction` | Current goals / hashtags / pillars |
-| PUT | `/direction` | Update direction |
-
-Lifecycle states: `idle | running | paused | error | stopped`.
-
-## Package layout
-
-- `agent_sdk.models` — status / direction / event schemas
-- `agent_sdk.control` — `BotController` pause/stop/status runtime
-- `agent_sdk.events` — JSONL run event stream
-- `agent_sdk.api` — FastAPI router factory
-- `agent_sdk.safety` — session caps and humanized delays
-- `agent_sdk.llm` — Moonshot/Kimi client (fixed temperature=1)
-
-## bot.yaml
-
-```yaml
-id: instagram
-name: Instagram Trend Bot
-network: instagram
-version: 0.1.0
-entry: ig_agent.api:app
-default_port: 7411
-```
+| POST | `/pause` `/resume` `/stop` | Lifecycle |
+| GET/PUT | `/direction` | Goals, hashtags, pillars |

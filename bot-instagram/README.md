@@ -1,60 +1,38 @@
 # bot-instagram
 
-Observation-only Instagram trend bot. Ingests Explore/hashtag signals with browser-use, filters and synthesizes with Kimi (Moonshot AI).
+Observation-only Instagram trend bot. Implements the **agent-sdk** control API.
 
-Implements the shared **agent-sdk** control API so the orchestrator (or any HTTP client) can start / pause / stop / steer it.
+## Clone & setup
 
-## Prerequisites
-
-- Python 3.11+
-- Sibling `agent-sdk` package (`../agent-sdk`)
-- Kimi API key from [platform.kimi.ai](https://platform.kimi.ai)
-
-## Setup
+**Preferred:** clone the platform repo and run root setup:
 
 ```powershell
-# from D:\GitHub (or this monorepo root)
-cd agent-sdk
-python -m venv ..\bot-instagram\.venv
-..\bot-instagram\.venv\Scripts\Activate.ps1
-pip install -e .
-cd ..\bot-instagram
-pip install -e .
-playwright install chromium
-copy .env.example .env
-# set MOONSHOT_API_KEY in .env
+git clone https://github.com/kashewknutt/instagram-bot.git
+cd instagram-bot
+.\setup.ps1 -Profile instagram   # or fleet
 ```
 
-## CLI
+**Open in Cursor:** `instagram-bot` (repo root) or this folder for CLI-only work.
+
+### If you only cloned this package
 
 ```powershell
-python main.py smoke-test
+cd D:\GitHub\bot-instagram
+python bootstrap.py
+# auto-fetches ../agent-sdk
+```
+
+## Run
+
+```powershell
+# CLI
 python main.py --offline run-once --sample
-python main.py ingest
-python main.py run-once
-python main.py daemon
+python main.py serve --port 7411
+
+# or via Fleet Control
+cd ..\orchestrator
+python -m orchestrator_app.main
+# http://127.0.0.1:7400
 ```
 
-## Control API
-
-```powershell
-python -m ig_agent.api
-# listens on http://127.0.0.1:7411
-```
-
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/status` | State, step, usage, artifacts |
-| POST | `/run` | `{ "mode": "once" \| "daemon", "sample": true }` |
-| POST | `/pause` `/resume` `/stop` | Lifecycle |
-| GET/PUT | `/direction` | Hashtags, pillars, goals |
-
-Direction is stored in `agency_context.json`.
-
-## Instagram login
-
-```powershell
-python main.py ingest
-```
-
-Log in once in the opened Chromium window. Session persists under `data/browser-profile`.
+Set `MOONSHOT_API_KEY` in `.env` for live runs. First live ingest: log into Instagram in the opened browser (session saved under `data/browser-profile`).

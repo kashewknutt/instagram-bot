@@ -1,61 +1,42 @@
 # orchestrator
 
-Local control plane and **Fleet Control** dashboard for plug-and-play social observation bots.
+Local **Fleet Control** dashboard for social observation bots.
 
-## What it does
+## Clone & setup
 
-- Reads `orchestrator.yaml` for bot paths/ports
-- Proxies start / pause / resume / stop / direction / logs
-- Can boot each bot’s control API as a subprocess
-- Serves the control UI at `http://127.0.0.1:7400`
-
-## Setup
+**Preferred:** clone the platform and pick a profile that includes the dashboard:
 
 ```powershell
-cd orchestrator
-python -m venv .venv
+git clone https://github.com/kashewknutt/instagram-bot.git
+cd instagram-bot
+.\setup.ps1 -Profile fleet
+```
+
+**Open in Cursor:** the platform repo root (`instagram-bot`), then run:
+
+```powershell
 .\.venv\Scripts\Activate.ps1
-pip install -e .
-
-# optional Vite build (public/ fallback works without this)
-cd frontend
-npm install
-npm run build
-cd ..
-```
-
-Also install sibling packages the bots need:
-
-```powershell
-pip install -e ..\agent-sdk
-pip install -e ..\bot-instagram
-pip install -e ..\bot-linkedin
-pip install -e ..\bot-x
-```
-
-## Run
-
-```powershell
 python -m orchestrator_app.main
-# open http://127.0.0.1:7400
+# http://127.0.0.1:7400
 ```
 
-In the UI:
+### If you only cloned this package
 
-1. Select a bot
-2. **Boot API** (starts that bot’s uvicorn process)
-3. **Run once** / **Daemon** / **Pause** / **Stop**
-4. Edit **Direction** (hashtags, pillars, goals) and save
-
-## Config
-
-```yaml
-# orchestrator.yaml
-bots:
-  - id: instagram
-    path: ../bot-instagram
-    port: 7411
-    enabled: true
+```powershell
+cd D:\GitHub\orchestrator
+python bootstrap.py --all-bots
+# fetches ../agent-sdk and bot-* siblings as needed
 ```
 
-Add another bot: clone/copy a bot package, add an entry, refresh the UI.
+Or Instagram only:
+
+```powershell
+python bootstrap.py --with instagram
+```
+
+## UI actions
+
+1. Select a bot  
+2. **Boot API**  
+3. **Run once** / **Daemon** / **Pause** / **Stop**  
+4. Edit **Direction** (hashtags, pillars, goals) and save  

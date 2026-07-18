@@ -1,0 +1,55 @@
+# Platform package manifest — used by setup.py / bootstrap.py
+# Until packages are split into separate GitHub repos, everything is
+# fetched from platform_repo via sparse-checkout of the package path.
+
+name: social-agent-platform
+platform_repo: https://github.com/kashewknutt/instagram-bot.git
+# Optional: override default branch for clones
+platform_branch: main
+
+# Profiles = what the user "needs". Setup asks for one of these.
+profiles:
+  instagram:
+    description: Instagram bot only (CLI + control API)
+    packages: [agent-sdk, bot-instagram]
+    open: bot-instagram
+    run_hint: "cd bot-instagram && python main.py --offline run-once --sample"
+  fleet:
+    description: Full fleet + Fleet Control dashboard (recommended)
+    packages: [agent-sdk, bot-instagram, bot-linkedin, bot-x, orchestrator]
+    open: .
+    run_hint: "python -m orchestrator_app.main  # then open http://127.0.0.1:7400"
+  orchestrator-ig:
+    description: Dashboard + Instagram only (no LinkedIn/X stubs)
+    packages: [agent-sdk, bot-instagram, orchestrator]
+    open: .
+    run_hint: "python -m orchestrator_app.main  # then open http://127.0.0.1:7400"
+
+packages:
+  agent-sdk:
+    path: agent-sdk
+    # Set repo when split, e.g. https://github.com/kashewknutt/agent-sdk.git
+    repo: null
+    description: Shared bot contract and control runtime
+  bot-instagram:
+    path: bot-instagram
+    repo: null
+    depends_on: [agent-sdk]
+    description: Instagram observation bot
+    env_example: bot-instagram/.env.example
+  bot-linkedin:
+    path: bot-linkedin
+    repo: null
+    depends_on: [agent-sdk]
+    description: LinkedIn bot stub
+  bot-x:
+    path: bot-x
+    repo: null
+    depends_on: [agent-sdk]
+    description: X (Twitter) bot stub
+  orchestrator:
+    path: orchestrator
+    repo: null
+    depends_on: [agent-sdk, bot-instagram]
+    description: Fleet Control dashboard and proxy
+    optional_depends_on: [bot-linkedin, bot-x]
