@@ -1,103 +1,97 @@
-# Kimi-Powered Local Instagram Trend Agent
+# Social Agent Platform
 
-Hybrid local agent for software agency social media trend analysis. Uses **browser-use** for Instagram data collection and **Kimi (Moonshot AI)** for filtering, multimodal analysis, and daily creative synthesis.
+Plug-and-play observation bots for social networks, plus a local **Fleet Control** orchestrator.
 
-## Prerequisites
+This repository is structured as **independent packages** that mirror separate GitHub repos. Clone the whole tree, or extract any package into its own repo later.
 
-- Python 3.11+
-- Google Chrome installed
-- Kimi API key from [platform.kimi.ai](https://platform.kimi.ai)
-- Logged-in Instagram session (saved under `data/browser-profile`)
+```text
+.
+├── agent-sdk/          # shared bot contract + control API + safety/LLM helpers
+├── bot-instagram/      # Instagram trend bot (fully wired)
+├── bot-linkedin/       # LinkedIn stub (same control API)
+├── bot-x/              # X stub (same control API)
+└── orchestrator/       # control plane + Fleet Control UI
+```
 
-## Setup
+```mermaid
+flowchart LR
+  Dashboard[Fleet Control UI]
+  API[Orchestrator API]
+  IG[bot-instagram]
+  LI[bot-linkedin]
+  X[bot-x]
+  SDK[agent-sdk]
 
-### Windows (PowerShell)
+  Dashboard --> API
+  API -->|HTTP control| IG
+  API -->|HTTP control| LI
+  API -->|HTTP control| X
+  IG --> SDK
+  LI --> SDK
+  X --> SDK
+```
+
+## What to clone
+
+| Goal | Packages |
+|------|----------|
+| Instagram only (CLI) | `agent-sdk` + `bot-instagram` |
+| Full fleet + dashboard | all five packages |
+| Add a new network later | copy a stub bot, implement pipeline, add to `orchestrator.yaml` |
+
+## Quick start (Windows PowerShell)
 
 ```powershell
-cd instagram-bot
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+cd agent-sdk
+python -m venv ..\.venv
+..\.venv\Scripts\Activate.ps1
+pip install -e .
+cd ..\bot-instagram
 pip install -e .
 playwright install chromium
-
 copy .env.example .env
-# Edit .env and set MOONSHOT_API_KEY
-# CHROME_PATH defaults to C:\Program Files\Google\Chrome\Application\chrome.exe
-```
+# set MOONSHOT_API_KEY
 
-### macOS / Linux
-
-```bash
-cd instagram-bot
-python3 -m venv .venv
-source .venv/bin/activate
+cd ..\bot-linkedin
 pip install -e .
-playwright install chromium --with-deps
+cd ..\bot-x
+pip install -e .
+cd ..\orchestrator
+pip install -e .
 
-cp .env.example .env
-# Edit .env and set MOONSHOT_API_KEY
+python -m orchestrator_app.main
+# open http://127.0.0.1:7400
 ```
 
-## Instagram login
+In Fleet Control:
 
-Ingest uses bundled Chromium with a persistent profile at `data/browser-profile`.
+1. Select **Instagram**
+2. **Boot API**
+3. **Run once** (sample/offline) to verify controls
+4. Edit **Direction** (hashtags / pillars) and save
+5. For live Instagram: set API key, run ingest once to log in, then **Run once** without sample
 
-```powershell
-python main.py ingest
-```
+## Control contract (every bot)
 
-On first run, log into Instagram in the opened browser window (including 2FA). Close nothing until the agent finishes or you are logged in — the session is saved and reused on later runs.
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/health` | Liveness |
+| GET | `/status` | State, step, usage, artifacts |
+| POST | `/run` | `{ "mode": "once" \| "daemon" }` |
+| POST | `/pause` `/resume` `/stop` | Lifecycle |
+| GET/PUT | `/direction` | Goals, hashtags, pillars |
 
-# Test full pipeline offline (no API key needed)
-python main.py --offline run-once --sample
+States: `idle | running | paused | error | stopped`.
 
-# Filter sample data only
-python main.py --offline filter-sample
+## Split into separate GitHub repos
 
-# Live Instagram scrape → filter → dashboard
-python main.py run-once
+Each top-level folder is self-contained (`pyproject.toml`, `README`, `.gitignore`). To split:
 
-# Individual steps
-python main.py ingest
-python main.py filter
-python main.py synthesize
-
-# Continuous background scheduler
-python main.py daemon
-
-# Multimodal analysis on top Reels (requires ENABLE_MULTIMODAL=true + API key)
-python main.py analyze-media
-```
-
-## Configuration
-
-Edit `agency_context.json` for your brand, audience, and content pillars.
-
-Key env vars in `.env`:
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `MOONSHOT_API_KEY` | — | Kimi API key |
-| `BROWSER_USER_DATA_DIR` | `./data/browser-profile` | Persistent Instagram login profile |
-| `KIMI_FILTER_MODEL` | `kimi-k2.6` | Relevance filtering |
-| `KIMI_SYNTH_MODEL` | `kimi-k3` | Daily dashboard synthesis |
-| `ENABLE_MULTIMODAL` | `false` | Video/image analysis (costs more) |
-| `MAX_SCROLL_SESSIONS_PER_DAY` | `4` | Safety rate limit |
-
-## Output
-
-- Raw scrapes: `data/raw/scraped_*.json`
-- Filtered trends: `data/filtered/filtered_*.json`
-- Daily dashboard: `reports/Daily_Social_Dashboard_YYYY-MM-DD.md`
+1. Create empty repos: `agent-sdk`, `bot-instagram`, `bot-linkedin`, `bot-x`, `orchestrator`
+2. Copy each folder into its repo and push
+3. Point bots at `agent-sdk` via editable install or git dependency
+4. Keep `orchestrator.yaml` paths as sibling clones under `D:\GitHub\`
 
 ## Safety
 
-This agent is **observation-only** — it does not like, comment, follow, or post. Daily session limits and humanized delays are enforced in `src/ig_agent/safety.py`.
-
-## Architecture
-
-```
-Scheduler → Ingest (browser-use) → Filter (kimi-k2.6) → Synthesize (kimi-k3) → Markdown Dashboard
-                                              ↓
-                                    Multimodal (optional, kimi-k3)
-```
+All bots are **observation-only** by default — no likes, comments, follows, or posts.

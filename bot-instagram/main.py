@@ -124,6 +124,16 @@ def cmd_daemon(_: argparse.Namespace) -> None:
     asyncio.run(run_daemon())
 
 
+def cmd_serve(args: argparse.Namespace) -> None:
+    """Expose the HTTP control API for the orchestrator."""
+    import os
+
+    import uvicorn
+
+    os.environ["BOT_PORT"] = str(args.port)
+    uvicorn.run("ig_agent.api:app", host=args.host, port=args.port, reload=False)
+
+
 def cmd_analyze_media(_: argparse.Namespace) -> None:
     """Run multimodal analysis on the latest filtered scrape."""
     settings = get_settings()
@@ -172,6 +182,11 @@ def main() -> None:
 
     p_daemon = sub.add_parser("daemon", help="Continuous background scheduler")
     p_daemon.set_defaults(func=cmd_daemon)
+
+    p_serve = sub.add_parser("serve", help="Start HTTP control API for orchestrator")
+    p_serve.add_argument("--host", default="127.0.0.1")
+    p_serve.add_argument("--port", type=int, default=7411)
+    p_serve.set_defaults(func=cmd_serve)
 
     p_mm = sub.add_parser("analyze-media", help="Run multimodal analysis on latest filtered file")
     p_mm.set_defaults(func=cmd_analyze_media)

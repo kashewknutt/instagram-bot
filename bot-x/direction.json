@@ -8,17 +8,11 @@
   ],
   "content_pillars": [
     "SaaS Architecture Optimization",
-    "B2B App Development Pitfalls",
-    "Real-World Client Case Studies",
     "Humorous Developer / Technical Workflows"
   ],
-  "brand_voice": "Authoritative, highly technical yet accessible, slightly witty, development-driven",
-  "competitor_hashtags": [
-    "#softwaredevelopment",
-    "#saas",
-    "#webdevelopment",
-    "#techstartup",
-    "#codinglife"
-  ],
-  "competitor_profiles": []
+  "brand_voice": "Authoritative, slightly witty, development-driven",
+  "competitor_hashtags": ["#buildinpublic", "#saas"],
+  "competitor_profiles": [],
+  "goals": "Discover X content angles for the agency brand.",
+  "constraints": "Observation only. Do not like, reply, follow, or post."
 }

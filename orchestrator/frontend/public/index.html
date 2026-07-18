@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fleet Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #12201c;
+        --ink-soft: #3a4a44;
+        --mist: #e7f0ea;
+        --paper: #f4faf6;
+        --panel: rgba(255, 255, 255, 0.72);
+        --line: rgba(18, 32, 28, 0.12);
+        --accent: #0f766e;
+        --accent-deep: #115e59;
+        --warn: #b45309;
+        --danger: #b91c1c;
+        --ok: #15803d;
+        --idle: #64748b;
+        --shadow: 0 18px 50px rgba(18, 32, 28, 0.08);
+        --font-display: "Instrument Serif", Georgia, serif;
+        --font-body: "DM Sans", "Segoe UI", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: var(--font-body);
+        background:
+          radial-gradient(1200px 600px at 10% -10%, #c7e7d8 0%, transparent 55%),
+          radial-gradient(900px 500px at 100% 0%, #d9e7f2 0%, transparent 50%),
+          linear-gradient(180deg, var(--paper), var(--mist));
+      }
+      .app { width: min(1120px, calc(100% - 2.5rem)); margin: 0 auto; padding: 2.5rem 0 4rem; }
+      .brand { font-family: var(--font-display); font-size: clamp(2.8rem, 6vw, 4.4rem); line-height: 0.95; margin: 0; }
+      .lede { color: var(--ink-soft); max-width: 36rem; }
+      .fleet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.85rem; margin: 1.5rem 0; }
+      @media (max-width: 860px) { .fleet { grid-template-columns: 1fr; } }
+      .bot-chip {
+        border: 1px solid var(--line); background: var(--panel); border-radius: 18px;
+        padding: 1rem; text-align: left; cursor: pointer; box-shadow: var(--shadow);
+      }
+      .bot-chip.active { border-color: var(--accent); background: #fff; }
+      .bot-chip h2 { margin: 0 0 0.35rem; font-size: 1.15rem; }
+      .meta { color: var(--ink-soft); font-size: 0.88rem; display: flex; gap: 0.75rem; flex-wrap: wrap; }
+      .panel {
+        border: 1px solid var(--line); background: var(--panel); border-radius: 24px;
+        padding: 1.25rem; box-shadow: var(--shadow);
+      }
+      .panel-head { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+      .panel-head h3 { font-family: var(--font-display); font-size: 2rem; font-weight: 400; margin: 0; }
+      .controls { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+      .controls button {
+        border: 1px solid var(--line); background: #fff; border-radius: 999px;
+        padding: 0.55rem 0.95rem; cursor: pointer;
+      }
+      .controls button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+      .controls button:disabled { opacity: 0.45; }
+      .grid-2 { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 1rem; margin-top: 1rem; }
+      @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+      .logs {
+        margin: 0; max-height: 280px; overflow: auto; padding: 0.9rem 1rem; border-radius: 16px;
+        background: #10231e; color: #d7ebe3; font-size: 0.82rem; white-space: pre-wrap;
+      }
+      .field { display: grid; gap: 0.35rem; margin-bottom: 0.7rem; }
+      .field label { font-size: 0.85rem; color: var(--ink-soft); }
+      .field input, .field textarea {
+        width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 0.65rem 0.75rem;
+      }
+      .error-banner {
+        margin: 1rem 0; padding: 0.75rem 1rem; border-radius: 14px;
+        background: rgba(185, 28, 28, 0.08); color: var(--danger);
+      }
+      .state { font-weight: 600; }
+      .state.running, .state.idle { color: var(--ok); }
+      .state.paused { color: var(--warn); }
+      .state.error { color: var(--danger); }
+      .state.offline, .state.stopped { color: var(--idle); }
+      h4 { margin: 0 0 0.55rem; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+    </style>
+  </head>
+  <body>
+    <div class="app" id="app">
+      <h1 class="brand">Fleet Control</h1>
+      <p class="lede">Loading fleet…</p>
+    </div>
+    <script>
+      const app = document.getElementById("app");
+      let bots = [];
+      let selectedId = null;
+      let logs = [];
+      let direction = null;
+      let error = "";
+
+      async function api(path, options = {}) {
+        const res = await fetch(path, {
+          headers: { "Content-Type": "application/json" },
+          ...options,
+        });
+        const text = await res.text();
+        let data = null;
+        try { data = text ? JSON.parse(text) : null; } catch { data = { detail: text }; }
+        if (!res.ok) throw new Error(typeof data?.detail === "string" ? data.detail : text || res.statusText);
+        return data;
+      }
+
+      function stateOf(bot) {
+        return bot?.status?.state || bot?.health?.state || "offline";
+      }
+
+      async function refresh() {
+        try {
+          const data = await api("/api/bots");
+          bots = data.bots || [];
+          if (!selectedId && bots[0]) selectedId = bots[0].id;
+          error = "";
+        } catch (e) {
+          error = e.message;
+        }
+        await refreshDetail();
+        render();
+      }
+
+      async function refreshDetail() {
+        if (!selectedId) return;
+        try {
+          const [logData, dir] = await Promise.all([
+            api(`/api/bots/${selectedId}/logs?tail=120`).catch(() => ({ lines: [] })),
+            api(`/api/bots/${selectedId}/direction`).catch(() => null),
+          ]);
+          logs = logData.lines || [];
+          direction = dir;
+        } catch (e) {
+          error = e.message;
+        }
+      }
+
+      async function act(fn) {
+        try {
+          await fn();
+          await refresh();
+        } catch (e) {
+          error = e.message;
+          render();
+        }
+      }
+
+      function render() {
+        const selected = bots.find((b) => b.id === selectedId);
+        const state = stateOf(selected);
+        const reachable = Boolean(selected?.health?.reachable);
+        const status = selected?.status;
+        app.innerHTML = `
+          <h1 class="brand">Fleet Control</h1>
+          <p class="lede">Watch every observation bot, steer its direction, and pause a run before it drifts.</p>
+          ${error ? `<div class="error-banner">${error}</div>` : ""}
+          <section class="fleet">
+            ${bots.map((bot) => `
+              <button class="bot-chip ${bot.id === selectedId ? "active" : ""}" data-id="${bot.id}">
+                <h2>${bot.name}</h2>
+                <div class="meta">
+                  <span class="state ${stateOf(bot)}">${stateOf(bot)}</span>
+                  <span>${bot.status?.current_step || bot.status?.last_action || "offline"}</span>
+                </div>
+              </button>
+            `).join("")}
+          </section>
+          ${!selected ? `<p>No bots registered.</p>` : `
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h3>${selected.name}</h3>
+                  <p class="meta">
+                    <span class="state ${state}">${state}</span>
+                    <span>${status?.current_step || status?.last_action || "waiting"}</span>
+                    ${status?.usage ? `<span>${status.usage.sessions_remaining} sessions left</span>` : ""}
+                  </p>
+                </div>
+                <div class="controls">
+                  <button data-act="boot">Boot API</button>
+                  <button class="primary" data-act="once" ${!reachable ? "disabled" : ""}>Run once</button>
+                  <button data-act="daemon" ${!reachable ? "disabled" : ""}>Daemon</button>
+                  <button data-act="pause" ${!reachable || state !== "running" ? "disabled" : ""}>Pause</button>
+                  <button data-act="resume" ${!reachable || state !== "paused" ? "disabled" : ""}>Resume</button>
+                  <button data-act="stop" ${!reachable ? "disabled" : ""}>Stop</button>
+                </div>
+              </div>
+              <div class="grid-2">
+                <div>
+                  <h4>Live trail</h4>
+                  <pre class="logs">${logs.length
+                    ? logs.map((l) => `${(l.ts || "").slice(11, 19)}  ${l.step || "-"}  ${l.message}`).join("\n")
+                    : (reachable ? "No events yet." : "Bot API offline — click Boot API.")}</pre>
+                  <h4 style="margin-top:1rem">Artifacts</h4>
+                  ${(status?.artifacts || []).map((a) => `<div><strong>${a.kind}</strong> <code>${a.path}</code></div>`).join("") || "<span>None yet</span>"}
+                </div>
+                <div>
+                  <h4>Direction</h4>
+                  ${direction ? `
+                    <form id="dir-form">
+                      <div class="field"><label>Goals</label><textarea name="goals">${direction.goals || ""}</textarea></div>
+                      <div class="field"><label>Hashtags (one per line)</label><textarea name="hashtags">${(direction.competitor_hashtags || []).join("\n")}</textarea></div>
+                      <div class="field"><label>Content pillars (one per line)</label><textarea name="pillars">${(direction.content_pillars || []).join("\n")}</textarea></div>
+                      <div class="field"><label>Constraints</label><textarea name="constraints">${direction.constraints || ""}</textarea></div>
+                      <div class="controls"><button class="primary" type="submit" ${!reachable ? "disabled" : ""}>Save direction</button></div>
+                    </form>
+                  ` : `<p>Direction unavailable until the bot API is up.</p>`}
+                </div>
+              </div>
+            </section>
+          `}
+        `;
+
+        app.querySelectorAll(".bot-chip").forEach((el) => {
+          el.onclick = () => { selectedId = el.dataset.id; refresh(); };
+        });
+        const controls = app.querySelector(".controls");
+        if (controls) {
+          controls.onclick = (ev) => {
+            const btn = ev.target.closest("button[data-act]");
+            if (!btn || !selected) return;
+            const actName = btn.dataset.act;
+            if (actName === "boot") return act(() => api(`/api/bots/${selected.id}/process/start`, { method: "POST" }));
+            if (actName === "once") return act(() => api(`/api/bots/${selected.id}/run`, { method: "POST", body: JSON.stringify({ mode: "once", sample: true, offline: true }) }));
+            if (actName === "daemon") return act(() => api(`/api/bots/${selected.id}/run`, { method: "POST", body: JSON.stringify({ mode: "daemon" }) }));
+            if (actName === "pause") return act(() => api(`/api/bots/${selected.id}/pause`, { method: "POST" }));
+            if (actName === "resume") return act(() => api(`/api/bots/${selected.id}/resume`, { method: "POST" }));
+            if (actName === "stop") return act(() => api(`/api/bots/${selected.id}/stop`, { method: "POST" }));
+          };
+        }
+        const form = app.querySelector("#dir-form");
+        if (form) {
+          form.onsubmit = (e) => {
+            e.preventDefault();
+            const fd = new FormData(form);
+            const next = {
+              ...direction,
+              goals: fd.get("goals"),
+              constraints: fd.get("constraints"),
+              competitor_hashtags: String(fd.get("hashtags") || "").split("\n").map((s) => s.trim()).filter(Boolean),
+              content_pillars: String(fd.get("pillars") || "").split("\n").map((s) => s.trim()).filter(Boolean),
+            };
+            act(() => api(`/api/bots/${selected.id}/direction`, { method: "PUT", body: JSON.stringify(next) }));
+          };
+        }
+      }
+
+      refresh();
+      setInterval(refresh, 4000);
+    </script>
+  </body>
+</html>
