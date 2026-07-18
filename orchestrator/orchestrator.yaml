@@ -1,0 +1,21 @@
+host: 127.0.0.1
+port: 7400
+bots:
+  - id: instagram
+    name: Instagram
+    path: ../plugins/bot-instagram
+    port: 7411
+    enabled: true
+    start_command: python -m ig_agent.api
+  - id: linkedin
+    name: LinkedIn
+    path: ../bot-linkedin
+    port: 7412
+    enabled: false
+    start_command: python -m linkedin_bot.api
+  - id: x
+    name: X
+    path: ../bot-x
+    port: 7413
+    enabled: false
+    start_command: python -m x_bot.api

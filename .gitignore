@@ -1,0 +1,28 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+node_modules/
+*.log
+.DS_Store
+
+# Plugin clones (fetched by setup — not vendored in git)
+plugins/bot-*/
+!plugins/.gitkeep
+
+**/data/browser-profile/
+**/data/chrome-profile/
+**/data/usage_log.json
+**/data/runs/
+**/data/raw/*.json
+!**/data/raw/sample_scraped.json
+**/data/filtered/*.json
+**/data/media/
+**/reports/*.md
+session.json
+
+# Cloned from https://github.com/kashewknutt/agent-sdk (not vendored)
+agent-sdk/

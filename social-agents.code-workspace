@@ -1,0 +1,27 @@
+{
+  "folders": [
+    {
+      "name": "platform",
+      "path": "."
+    },
+    {
+      "name": "plugin: instagram",
+      "path": "plugins/bot-instagram"
+    },
+    {
+      "name": "plugin: linkedin",
+      "path": "bot-linkedin"
+    },
+    {
+      "name": "plugin: x",
+      "path": "bot-x"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.venv": true,
+      "**/__pycache__": true,
+      "**/*.egg-info": true
+    }
+  }
+}
