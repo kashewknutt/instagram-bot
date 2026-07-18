@@ -1,0 +1,1 @@
+"""LinkedIn observation bot stub."""
