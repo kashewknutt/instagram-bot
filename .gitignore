@@ -5,18 +5,16 @@ __pycache__/
 *.egg-info/
 dist/
 build/
-node_modules/
+data/chrome-profile/
+data/browser-profile/
+data/usage_log.json
+data/runs/
+data/raw/*.json
+!data/raw/sample_scraped.json
+data/filtered/*.json
+data/media/
+reports/*.md
+session.json
 *.log
 .DS_Store
 
-# Runtime / secrets / browser profiles
-**/data/browser-profile/
-**/data/chrome-profile/
-**/data/usage_log.json
-**/data/runs/
-**/data/raw/*.json
-!**/data/raw/sample_scraped.json
-**/data/filtered/*.json
-**/data/media/
-**/reports/*.md
-session.json
