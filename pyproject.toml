@@ -5,7 +5,8 @@ description = "Instagram trend observation bot powered by Kimi (Moonshot AI)"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    # Install sibling first: pip install -e ../agent-sdk
+    # Prefer: pip install -e ../agent-sdk  (cloned by platform setup)
+    # Or: pip install "agent-sdk @ git+https://github.com/kashewknutt/agent-sdk.git"
     "browser-use>=0.1.40",
     "openai>=1.0.0",
     "python-dotenv>=1.0.0",
