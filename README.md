@@ -1,6 +1,11 @@
 # bot-instagram (plugin)
 
-Instagram observation bot — a **plugin** for [social-agent-platform](https://github.com/kashewknutt/social-agent-platform).
+Instagram research + engagement bot — a **plugin** for [social-agent-platform](https://github.com/kashewknutt/social-agent-platform).
+
+- **Ingest** stays observation-only
+- **Auto:** like, follow (daily caps + humanized delays)
+- **HITL:** comment, DM, post (draft → approve/edit/skip → execute)
+- **Sample/offline:** propose only — never browser-engage
 
 Do **not** treat this repo as the product. Clone the platform, then let setup pull this plugin.
 
@@ -36,3 +41,13 @@ copy .env.example .env        # set MOONSHOT_API_KEY
 python main.py --offline run-once --sample
 python main.py serve --port 7411
 ```
+
+## Engagement smoke (offline, no IG login)
+
+```powershell
+pip install -e ../agent-sdk
+pip install -e .
+python -m pytest tests/test_engagement.py -q
+# or: python tests/test_engagement.py
+```
+

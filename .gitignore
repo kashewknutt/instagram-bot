@@ -8,6 +8,7 @@ build/
 data/chrome-profile/
 data/browser-profile/
 data/usage_log.json
+data/interactions.db
 data/runs/
 data/raw/*.json
 !data/raw/sample_scraped.json

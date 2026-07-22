@@ -14,10 +14,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 from ig_agent.config import FILTERED_DIR, RAW_DIR, get_settings
+from ig_agent.engage import execute_auto_interactions
 from ig_agent.filter import filter_all_raw, filter_latest_raw, filter_raw_file, load_agency_context, score_posts
 from ig_agent.ingest import capture_trends_with_delays
 from ig_agent.llm import KimiClient
 from ig_agent.multimodal import analyze_from_filtered_file
+from ig_agent.persist import init_db
+from ig_agent.propose import propose_interactions
 from ig_agent.scheduler import run_daemon
 from ig_agent.synthesize import synthesize_dashboard
 
@@ -79,16 +82,31 @@ def cmd_synthesize(args: argparse.Namespace) -> None:
 
 def cmd_ingest(_: argparse.Namespace) -> None:
     """Run a single Instagram ingestion pass."""
+    from ig_agent.hashtag_rotation import pick_hashtags_for_session, prune_history
+
     ctx = load_agency_context()
-    hashtags = ctx.get("competitor_hashtags")
+    settings = get_settings()
+    prune_history(keep_days=14.0)
+    hashtags, note = pick_hashtags_for_session(
+        ctx.get("competitor_hashtags"),
+        within_days=settings.hashtag_cooldown_days,
+    )
+    print(note)
     path = asyncio.run(capture_trends_with_delays(hashtags=hashtags))
     print(f"Ingested → {path}")
 
 
 def cmd_run_once(args: argparse.Namespace) -> None:
     """Full pipeline: ingest → filter → (optional multimodal) → synthesize."""
+    from ig_agent.hashtag_rotation import pick_hashtags_for_session, prune_history
+
     ctx = load_agency_context()
-    hashtags = ctx.get("competitor_hashtags")
+    settings = get_settings()
+    prune_history(keep_days=14.0)
+    hashtags, note = pick_hashtags_for_session(
+        ctx.get("competitor_hashtags"),
+        within_days=settings.hashtag_cooldown_days,
+    )
 
     if args.sample:
         sample_path = RAW_DIR / "sample_scraped.json"
@@ -98,6 +116,7 @@ def cmd_run_once(args: argparse.Namespace) -> None:
         raw_path = sample_path
         print(f"Using sample data: {raw_path}")
     else:
+        print(note)
         print("Starting Instagram ingestion...")
         raw_path = asyncio.run(capture_trends_with_delays(hashtags=hashtags))
         print(f"Ingested → {raw_path}")
@@ -117,6 +136,31 @@ def cmd_run_once(args: argparse.Namespace) -> None:
     print("Synthesizing daily dashboard...")
     report = synthesize_dashboard(multimodal_notes=multimodal_notes, offline=offline)
     print(f"Dashboard → {report}")
+
+    engage = getattr(args, "engage", True) and settings.engage_after_research
+    if engage:
+        init_db()
+        print("Proposing engagement interactions...")
+        created = propose_interactions(
+            filtered_path=filtered_path,
+            agency_context=ctx,
+            settings=settings,
+        )
+        print(f"Proposed {len(created)} interaction(s)")
+        if args.sample or offline:
+            print("Sample/offline — skipped browser engagement")
+        else:
+            print("Executing auto likes/follows...")
+            results = asyncio.run(execute_auto_interactions(settings=settings))
+            done = sum(1 for r in results if r.get("status") == "done")
+            print(f"Auto execute done={done} total={len(results)}")
+
+
+def cmd_propose(_: argparse.Namespace) -> None:
+    """Propose interactions from the latest filtered shortlist (offline-safe)."""
+    init_db()
+    created = propose_interactions()
+    print(json.dumps({"count": len(created), "ids": [c["id"] for c in created]}, indent=2))
 
 
 def cmd_daemon(_: argparse.Namespace) -> None:
@@ -175,10 +219,14 @@ def main() -> None:
     p_synth.add_argument("--multimodal", action="store_true", help="Include multimodal notes")
     p_synth.set_defaults(func=cmd_synthesize)
 
-    p_run = sub.add_parser("run-once", help="Full pipeline: ingest → filter → synthesize")
+    p_run = sub.add_parser("run-once", help="Full pipeline: ingest → filter → synthesize → propose")
     p_run.add_argument("--sample", action="store_true", help="Use sample data instead of live scrape")
     p_run.add_argument("--multimodal", action="store_true", help="Run multimodal analysis")
-    p_run.set_defaults(func=cmd_run_once)
+    p_run.add_argument("--no-engage", dest="engage", action="store_false", help="Skip propose/engage")
+    p_run.set_defaults(func=cmd_run_once, engage=True)
+
+    p_propose = sub.add_parser("propose", help="Propose interactions from latest filtered shortlist")
+    p_propose.set_defaults(func=cmd_propose)
 
     p_daemon = sub.add_parser("daemon", help="Continuous background scheduler")
     p_daemon.set_defaults(func=cmd_daemon)

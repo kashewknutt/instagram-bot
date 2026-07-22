@@ -4,4 +4,4 @@ network: instagram
 version: 0.1.0
 entry: ig_agent.api:app
 default_port: 7411
-description: Observation-only Instagram trend ingest, filter, and synthesize
+description: Instagram research + engagement (auto like/follow; HITL comment/DM/post)
